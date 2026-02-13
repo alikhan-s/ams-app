@@ -71,17 +71,19 @@ func main() {
 		// Register Auth Routes
 		auth.RegisterRoutes(v1, authHandler)
 
+		// Middleware
+		authMiddleware := auth.AuthMiddleware(jwtSecret)
+
 		// Register Flight Routes
 		flightRepo := flight.NewRepository(db)
 		flightService := flight.NewService(flightRepo, log)
 		flightHandler := flight.NewHandler(flightService)
-		flight.RegisterRoutes(v1, flightHandler)
+		flight.RegisterRoutes(v1, flightHandler, authMiddleware)
 
 		// Register Airport Ops Routes
 		opsRepo := airportops.NewRepository(db)
 		opsService := airportops.NewService(opsRepo, log)
 		opsHandler := airportops.NewHandler(opsService)
-		authMiddleware := auth.AuthMiddleware(jwtSecret)
 		airportops.RegisterRoutes(v1, opsHandler, authMiddleware)
 
 		// Register Passenger Module (Internal dependency, no public routes for now)

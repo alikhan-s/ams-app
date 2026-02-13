@@ -69,7 +69,10 @@ func (s *Service) Login(ctx context.Context, req LoginRequest) (*AuthResponse, e
 		return nil, fmt.Errorf("failed to generate token: %w", err)
 	}
 
-	return &AuthResponse{Token: token}, nil
+	return &AuthResponse{
+		Token: token,
+		User:  user,
+	}, nil
 }
 
 func (s *Service) generateToken(user *User) (string, error) {

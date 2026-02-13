@@ -1,7 +1,9 @@
 package flight
 
 import (
+	"airport-system/internal/auth"
 	"net/http"
+	"strconv"
 
 	"github.com/gin-gonic/gin"
 )
@@ -18,6 +20,10 @@ func NewHandler(service *Service) *Handler {
 
 // Create handles flight creation.
 func (h *Handler) Create(c *gin.Context) {
+	if !auth.RequireRole(c, "ADMIN") {
+		return
+	}
+
 	var req CreateFlightParams
 	if err := c.ShouldBindJSON(&req); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
@@ -48,4 +54,26 @@ func (h *Handler) Search(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusOK, flights)
+}
+
+// GetByID handles getting a flight by ID.
+func (h *Handler) GetByID(c *gin.Context) {
+	idStr := c.Param("id")
+	id, err := strconv.ParseInt(idStr, 10, 64)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid id"})
+		return
+	}
+
+	flight, err := h.Service.GetByID(c.Request.Context(), id)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+	if flight == nil {
+		c.JSON(http.StatusNotFound, gin.H{"error": "flight not found"})
+		return
+	}
+
+	c.JSON(http.StatusOK, flight)
 }

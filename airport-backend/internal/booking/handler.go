@@ -92,7 +92,19 @@ func (h *Handler) GetMyBaggage(c *gin.Context) {
 	}
 	userID := userIDVal.(int64)
 
-	baggage, err := h.Service.GetUserBaggage(c.Request.Context(), userID)
+	// Parse optional ticket_id
+	var ticketID int64
+	ticketIDStr := c.Query("ticket_id")
+	if ticketIDStr != "" {
+		id, err := strconv.ParseInt(ticketIDStr, 10, 64)
+		if err != nil {
+			c.JSON(http.StatusBadRequest, gin.H{"error": "invalid ticket_id"})
+			return
+		}
+		ticketID = id
+	}
+
+	baggage, err := h.Service.GetUserBaggage(c.Request.Context(), userID, ticketID)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return

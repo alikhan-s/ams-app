@@ -84,7 +84,7 @@ func (s *Service) BookTicket(ctx context.Context, userID int64, req BookingReque
 		ticket = &Ticket{
 			FlightID:    req.FlightID,
 			PassengerID: passengerID, // Use PassengerID, not UserID
-			Price:       150.00,      // Fixed price for simplicity
+			Price:       f.BasePrice,
 			Status:      "ACTIVE",
 		}
 
@@ -146,7 +146,7 @@ func (s *Service) CancelTicket(ctx context.Context, userID, ticketID int64) erro
 }
 
 // GetUserBaggage returns all baggage for the current user across all bookings.
-func (s *Service) GetUserBaggage(ctx context.Context, userID int64) ([]airportops.Baggage, error) {
+func (s *Service) GetUserBaggage(ctx context.Context, userID, ticketID int64) ([]airportops.Baggage, error) {
 	// 1. Get Passenger Profile
 	passProfile, err := s.passService.GetProfile(ctx, userID)
 	if err != nil {
@@ -157,17 +157,38 @@ func (s *Service) GetUserBaggage(ctx context.Context, userID int64) ([]airportop
 	}
 
 	// 2. Get Bookings
-	bookings, err := s.repo.GetByPassengerID(ctx, passProfile.ID)
-	if err != nil {
-		return nil, fmt.Errorf("failed to get bookings: %w", err)
+	// If ticketID is provided, verify it belongs to the user
+	var targetBookingIDs []int64
+
+	if ticketID != 0 {
+		ticket, err := s.repo.GetByID(ctx, ticketID)
+		if err != nil {
+			return nil, err
+		}
+		if ticket == nil {
+			return nil, errors.New("ticket not found")
+		}
+		if ticket.PassengerID != passProfile.ID {
+			return nil, errors.New("unauthorized to view baggage for this ticket")
+		}
+		targetBookingIDs = append(targetBookingIDs, ticketID)
+	} else {
+		// Fetch all bookings
+		bookings, err := s.repo.GetByPassengerID(ctx, passProfile.ID)
+		if err != nil {
+			return nil, fmt.Errorf("failed to get bookings: %w", err)
+		}
+		for _, b := range bookings {
+			targetBookingIDs = append(targetBookingIDs, b.ID)
+		}
 	}
 
 	// 3. Aggregate Baggage
 	var allBaggage []airportops.Baggage
-	for _, booking := range bookings {
-		bags, err := s.opsService.GetBaggageByTicketID(ctx, booking.ID)
+	for _, bookingID := range targetBookingIDs {
+		bags, err := s.opsService.GetBaggageByTicketID(ctx, bookingID)
 		if err != nil {
-			return nil, fmt.Errorf("failed to get baggage for ticket %d: %w", booking.ID, err)
+			return nil, fmt.Errorf("failed to get baggage for ticket %d: %w", bookingID, err)
 		}
 		allBaggage = append(allBaggage, bags...)
 	}

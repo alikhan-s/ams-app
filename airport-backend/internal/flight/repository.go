@@ -20,8 +20,8 @@ func NewRepository(db *sql.DB) *Repository {
 // Create inserts a new flight into the database.
 func (r *Repository) Create(ctx context.Context, f *Flight) (int64, error) {
 	query := `
-		INSERT INTO flights (flight_no, origin, destination, departure_time, arrival_time, status, version, total_seats, created_at, updated_at)
-		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, NOW(), NOW())
+		INSERT INTO flights (flight_no, origin, destination, departure_time, arrival_time, status, version, total_seats, base_price, created_at, updated_at)
+		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, NOW(), NOW())
 		RETURNING id
 	`
 
@@ -31,6 +31,10 @@ func (r *Repository) Create(ctx context.Context, f *Flight) (int64, error) {
 	}
 	if f.TotalSeats == 0 {
 		f.TotalSeats = 150
+	}
+
+	if f.BasePrice == 0 {
+		f.BasePrice = 32000.00
 	}
 
 	var id int64
@@ -43,6 +47,7 @@ func (r *Repository) Create(ctx context.Context, f *Flight) (int64, error) {
 		f.Status,
 		f.Version,
 		f.TotalSeats,
+		f.BasePrice,
 	).Scan(&id)
 
 	if err != nil {
@@ -54,7 +59,7 @@ func (r *Repository) Create(ctx context.Context, f *Flight) (int64, error) {
 // Search retrieves flights based on origin, destination, and date.
 func (r *Repository) Search(ctx context.Context, origin, destination string, date time.Time) ([]Flight, error) {
 	query := `
-		SELECT id, flight_no, origin, destination, gate_id, departure_time, arrival_time, status, version, created_at, updated_at, total_seats
+		SELECT id, flight_no, origin, destination, gate_id, departure_time, arrival_time, status, version, created_at, updated_at, total_seats, base_price
 		FROM flights
 		WHERE 1=1
 	`
@@ -98,7 +103,7 @@ func (r *Repository) Search(ctx context.Context, origin, destination string, dat
 		if err := rows.Scan(
 			&f.ID, &f.FlightNo, &f.Origin, &f.Destination, &f.GateID,
 			&f.DepartureTime, &f.ArrivalTime, &f.Status, &f.Version,
-			&f.CreatedAt, &f.UpdatedAt, &f.TotalSeats,
+			&f.CreatedAt, &f.UpdatedAt, &f.TotalSeats, &f.BasePrice,
 		); err != nil {
 			return nil, fmt.Errorf("failed to scan flight: %w", err)
 		}
@@ -111,7 +116,7 @@ func (r *Repository) Search(ctx context.Context, origin, destination string, dat
 // GetByID retrieves a flight by its ID.
 func (r *Repository) GetByID(ctx context.Context, id int64) (*Flight, error) {
 	query := `
-		SELECT id, flight_no, origin, destination, gate_id, departure_time, arrival_time, status, version, created_at, updated_at, total_seats
+		SELECT id, flight_no, origin, destination, gate_id, departure_time, arrival_time, status, version, created_at, updated_at, total_seats, base_price
 		FROM flights
 		WHERE id = $1
 	`
@@ -119,7 +124,7 @@ func (r *Repository) GetByID(ctx context.Context, id int64) (*Flight, error) {
 	err := r.DB.QueryRowContext(ctx, query, id).Scan(
 		&f.ID, &f.FlightNo, &f.Origin, &f.Destination, &f.GateID,
 		&f.DepartureTime, &f.ArrivalTime, &f.Status, &f.Version,
-		&f.CreatedAt, &f.UpdatedAt, &f.TotalSeats,
+		&f.CreatedAt, &f.UpdatedAt, &f.TotalSeats, &f.BasePrice,
 	)
 	if err != nil {
 		if err == sql.ErrNoRows {

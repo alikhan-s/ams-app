@@ -16,6 +16,7 @@ type Flight struct {
 	CreatedAt     time.Time `json:"created_at"`
 	UpdatedAt     time.Time `json:"updated_at"`
 	TotalSeats    int       `json:"total_seats"`
+	BasePrice     float64   `json:"base_price"`
 }
 
 // CreateFlightParams defines the parameters for creating a new flight.

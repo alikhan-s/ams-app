@@ -71,3 +71,8 @@ func (s *Service) SearchFlights(ctx context.Context, origin, destination, dateSt
 
 	return s.repo.Search(ctx, origin, destination, searchDate)
 }
+
+// GetByID retrieves a flight by its ID.
+func (s *Service) GetByID(ctx context.Context, id int64) (*Flight, error) {
+	return s.repo.GetByID(ctx, id)
+}

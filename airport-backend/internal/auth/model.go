@@ -25,7 +25,7 @@ type LoginRequest struct {
 	Password string `json:"password" binding:"required"`
 }
 
-// AuthResponse returns the JWT token.
 type AuthResponse struct {
 	Token string `json:"token"`
+	User  *User  `json:"user"`
 }
