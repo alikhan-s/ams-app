@@ -5,14 +5,14 @@ import (
 )
 
 // RegisterRoutes sets up the flight routes.
-// RegisterRoutes sets up the flight routes.
 func RegisterRoutes(r *gin.RouterGroup, h *Handler, authMiddleware gin.HandlerFunc) {
 	flightGroup := r.Group("/flights")
 	{
-		flightGroup.GET("/", h.Search)
+		flightGroup.GET("", h.Search) 
+		
 		flightGroup.GET("/:id", h.GetByID)
 
 		// Protected routes
-		flightGroup.POST("/", authMiddleware, h.Create)
+		flightGroup.POST("", authMiddleware, h.Create)
 	}
 }
